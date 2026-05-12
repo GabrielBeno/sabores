@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sabores del Barrio</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700;1,9..144,400;1,9..144,700&family=Figtree:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  :root {
+    --bg:#0d1b2e; --surface:#0d1b2e; --card:#0d1b2e; --card-hover:#112237;
+    --rule:rgba(255,255,255,0.07); --rule-strong:rgba(255,255,255,0.10);
+    --gold:#c9a227; --gold-soft:rgba(201,162,39,0.12); --gold-mid:#c9a227;
+    --text:#e8eef5; --mid:#7a93ad; --muted:#4a6278;
+  }
+  @keyframes slideIn { from{opacity:0;transform:translateX(-14px)}to{opacity:1;transform:translateX(0)} }
+  @keyframes popIn   { from{opacity:0;transform:scale(0.94)}to{opacity:1;transform:scale(1)} }
+  @keyframes fadeUp  { from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)} }
+  @keyframes spin    { to{transform:rotate(360deg)} }
+
+  html,body { background:#0d1b2e; }
+  body { color:var(--text); font-family:'Figtree',sans-serif; min-height:100vh; }
+  body::before {
+    content:''; position:fixed; inset:0;
+    background-image:radial-gradient(rgba(201,162,39,0.06) 1px,transparent 1px);
+    background-size:32px 32px; pointer-events:none; z-index:0;
+  }
+
+  /* ── LOADING SCREEN ── */
+  #loading-screen {
+    position:fixed; inset:0; z-index:1000;
+    background:#0d1b2e; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:16px;
+  }
+  .loading-logo { font-family:'Fraunces',serif; font-size:1.8rem; font-style:italic; color:var(--gold-mid); }
+  .spinner {
+    width:32px; height:32px; border:3px solid rgba(201,162,39,0.2);
+    border-top-color:var(--gold); border-radius:50%;
+    animation:spin 0.8s linear infinite;
+  }
+  .loading-msg { font-size:0.78rem; color:var(--muted); }
+
+  /* ── LOGIN ── */
+  .login-screen {
+    position:fixed; inset:0; z-index:999;
+    display:flex; align-items:center; justify-content:center; padding:20px;
+  }
+  .login-backdrop { position:absolute; inset:0; background:#0d1b2e; }
+  .login-backdrop::before {
+    content:''; position:absolute; inset:0;
+    background-image:radial-gradient(rgba(201,162,39,0.06) 1px,transparent 1px);
+    background-size:32px 32px;
+  }
+  .login-card {
+    position:relative; z-index:1;
+    background:rgba(14,30,51,0.95); border:1px solid rgba(201,162,39,0.3);
+    border-radius:24px; padding:36px 32px; width:100%; max-width:360px;
+    box-shadow:0 24px 64px rgba(0,0,0,0.7); animation:popIn 0.4s ease both;
+  }
+  .login-logo { text-align:center; margin-bottom:28px; }
+  .login-logo .l-title { font-family:'Fraunces',serif; font-size:1.6rem; font-style:italic; color:var(--gold-mid); line-height:1.1; margin-bottom:4px; }
+  .login-logo .l-sub { font-size:0.72rem; color:var(--mid); letter-spacing:0.5px; }
+  .login-divider { width:40px; height:1px; background:rgba(201,162,39,0.3); margin:14px auto; }
+  .login-label { font-size:0.7rem; font-weight:600; color:var(--mid); text-transform:uppercase; letter-spacing:1px; margin-bottom:6px; display:block; }
+  .login-input {
+    width:100%; background:rgba(255,255,255,0.05); border:1.5px solid var(--rule-strong);
+    border-radius:12px; padding:11px 14px; color:var(--text);
+    font-family:'Figtree',sans-serif; font-size:0.9rem; outline:none;
+    transition:border-color 0.15s; margin-bottom:14px;
+  }
+  .login-input:focus { border-color:var(--gold); }
+  .login-input::placeholder { color:var(--muted); }
+  .login-btn {
+    width:100%; background:var(--gold); color:#0d1b2e; border:none; border-radius:12px;
+    padding:13px; font-family:'Figtree',sans-serif; font-size:0.9rem; font-weight:700;
+    cursor:pointer; transition:transform 0.15s,box-shadow 0.15s;
+    box-shadow:0 2px 12px rgba(201,162,39,0.35); margin-top:4px;
+  }
+  .login-btn:hover { transform:translateY(-1px); box-shadow:0 4px 20px rgba(201,162,39,0.5); }
+  .login-error { color:#e05555; font-size:0.75rem; text-align:center; margin-top:10px; min-height:18px; }
+  body.login-active #app-root { filter:blur(6px); pointer-events:none; user-select:none; }
+
+  /* ── NAV ── */
+  nav {
+    position:sticky; top:0; z-index:100; background:#0d1b2e;
+    border-bottom:1px solid var(--rule-strong); padding:0 20px; height:60px;
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .brand { font-family:'Fraunces',serif; font-size:1.15rem; font-style:italic; color:var(--gold-mid); }
+  .brand span { font-style:normal; font-size:0.75rem; color:var(--mid); margin-left:8px; }
+  .nav-right { display:flex; gap:8px; align-items:center; }
+  .accesos-btn {
+    background:transparent; color:var(--mid); border:1.5px solid var(--rule-strong);
+    border-radius:100px; padding:7px 14px; font-family:'Figtree',sans-serif;
+    font-size:0.73rem; font-weight:600; cursor:pointer; transition:border-color 0.15s,color 0.15s;
+  }
+  .accesos-btn:hover { border-color:var(--gold); color:var(--gold); }
+  .add-btn {
+    background:var(--gold); color:#0d1b2e; border:none; border-radius:100px;
+    padding:8px 18px; font-family:'Figtree',sans-serif; font-size:0.78rem; font-weight:700;
+    cursor:pointer; transition:transform 0.15s,box-shadow 0.15s;
+    box-shadow:0 2px 12px rgba(201,162,39,0.3);
+  }
+  .add-btn:hover { transform:translateY(-1px); box-shadow:0 4px 20px rgba(201,162,39,0.45); }
+
+  /* ── MAIN ── */
+  .main { position:relative; z-index:1; max-width:860px; margin:0 auto; padding:28px 16px 80px; }
+
+  /* ── HERO ── */
+  .hero-band {
+    background:var(--surface); border:1px solid rgba(201,162,39,0.2);
+    border-radius:22px; padding:22px 24px;
+    display:flex; align-items:center; justify-content:space-between; gap:16px;
+    margin-bottom:20px; box-shadow:0 4px 32px rgba(0,0,0,0.4);
+  }
+  .hero-left h1 { font-family:'Fraunces',serif; font-size:1.5rem; font-style:italic; letter-spacing:-0.5px; color:var(--gold-mid); margin-bottom:5px; }
+  .hero-left p  { font-size:0.78rem; color:var(--mid); max-width:280px; line-height:1.6; }
+  .hero-stats   { display:flex; gap:16px; flex-shrink:0; }
+  .hstat        { text-align:center; }
+  .hstat-val    { font-family:'Fraunces',serif; font-size:1.8rem; font-weight:700; font-style:italic; color:var(--gold-mid); line-height:1; }
+  .hstat-lbl    { font-size:0.58rem; color:var(--muted); text-transform:uppercase; letter-spacing:1.2px; margin-top:3px; }
+  .hstat-div    { width:1px; background:var(--rule-strong); align-self:stretch; }
+
+  /* ── TABS ── */
+  .tabs { display:flex; gap:8px; margin-bottom:18px; flex-wrap:wrap; }
+  .tab {
+    padding:7px 18px; border-radius:100px; font-size:0.78rem; font-weight:500;
+    cursor:pointer; transition:all 0.15s; border:1.5px solid var(--rule-strong);
+    background:var(--surface); color:var(--mid);
+  }
+  .tab:hover { border-color:var(--gold); color:var(--gold); }
+  .tab.on { background:var(--gold-soft); color:var(--gold-mid); border-color:rgba(201,162,39,0.4); }
+
+  /* ── FILTER ── */
+  .filter-row { display:flex; gap:10px; margin-bottom:18px; flex-wrap:wrap; align-items:center; }
+  .filter-select {
+    background:var(--card); border:1.5px solid var(--rule-strong); color:var(--text);
+    border-radius:12px; padding:9px 14px; font-family:'Figtree',sans-serif; font-size:0.8rem;
+    cursor:pointer; outline:none; transition:border-color 0.15s; appearance:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237a93ad' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 12px center; padding-right:32px; min-width:160px;
+  }
+  .filter-select:hover,.filter-select:focus { border-color:var(--gold); }
+  .filter-select option { background:#0d1b2e; color:var(--text); }
+
+  /* ── SECTION LABEL ── */
+  .section-label {
+    font-size:0.65rem; color:var(--muted); text-transform:uppercase; letter-spacing:2px;
+    margin-bottom:12px; display:flex; align-items:center; gap:10px;
+  }
+  .section-label::after { content:''; flex:1; height:1px; background:var(--rule); }
+
+  /* ── CARDS ── */
+  .card-grid { display:flex; flex-direction:column; gap:10px; }
+  .card {
+    background:var(--card); border:1px solid rgba(201,162,39,0.15);
+    border-radius:18px; padding:18px 20px; display:flex; gap:16px; align-items:flex-start;
+    cursor:pointer; transition:transform 0.18s,box-shadow 0.18s,background 0.18s,border-color 0.18s;
+    box-shadow:0 2px 20px rgba(0,0,0,0.3);
+  }
+  .card:hover { background:var(--card-hover); transform:translateY(-2px); box-shadow:0 8px 32px rgba(0,0,0,0.4); border-color:rgba(201,162,39,0.35); }
+  .icon-box { width:50px; height:50px; border-radius:14px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:1.5rem; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.08); }
+  .card-info { flex:1; min-width:0; }
+  .card-name { font-size:0.93rem; font-weight:700; color:var(--gold-mid); margin-bottom:5px; }
+  .card-meta { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px; }
+  .pill { font-size:0.65rem; font-weight:600; padding:3px 9px; border-radius:100px; }
+  .pill-cat  { background:rgba(255,255,255,0.10); color:#fff; }
+  .pill-info { background:rgba(255,255,255,0.05); color:var(--mid); }
+  .card-prod-list { display:table; width:100%; border-spacing:0 3px; margin-bottom:7px; }
+  .card-prod-item { display:table-row; font-size:0.72rem; }
+  .card-prod-name  { display:table-cell; color:var(--mid); white-space:nowrap; padding-right:10px; vertical-align:middle; }
+  .card-prod-bar-wrap { display:table-cell; width:100%; vertical-align:middle; }
+  .card-prod-bar-inner { height:2px; background:rgba(255,255,255,0.06); border-radius:1px; overflow:hidden; }
+  .card-prod-bar { height:100%; background:var(--gold); border-radius:1px; opacity:0.55; }
+  .card-prod-score { display:table-cell; font-family:'Fraunces',serif; font-style:italic; color:var(--gold-mid); font-size:0.8rem; font-weight:700; white-space:nowrap; padding-left:8px; vertical-align:middle; text-align:right; }
+  .card-note { font-size:0.74rem; color:var(--mid); line-height:1.5; font-style:italic; }
+  .card-date { font-size:0.62rem; color:var(--muted); margin-top:5px; }
+  .card-right { text-align:right; flex-shrink:0; }
+  .score-ring { position:relative; width:56px; height:56px; margin:0 auto 5px; }
+  .score-ring svg { transform:rotate(-90deg); }
+  .ring-bg   { fill:none; stroke:rgba(255,255,255,0.08); stroke-width:4; }
+  .ring-fill { fill:none; stroke-width:4; stroke-linecap:round; stroke:#fff; }
+  .ring-label { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:'Fraunces',serif; font-size:1rem; font-weight:700; font-style:italic; color:#fff; }
+  .visits-tag { display:inline-block; background:rgba(255,255,255,0.06); color:var(--mid); font-size:0.6rem; font-weight:600; padding:2px 8px; border-radius:100px; border:1px solid var(--rule-strong); }
+
+  /* ── EMPTY / ERROR ── */
+  .empty { text-align:center; padding:48px 24px; color:var(--muted); }
+  .empty .icon { font-size:2.5rem; margin-bottom:12px; }
+  .empty p { font-size:0.85rem; line-height:1.6; }
+
+  /* ── MODAL BASE ── */
+  .overlay {
+    position:fixed; inset:0; background:rgba(0,0,0,0.75); backdrop-filter:blur(6px);
+    z-index:200; display:flex; align-items:center; justify-content:center;
+    padding:20px; opacity:0; pointer-events:none; transition:opacity 0.2s;
+  }
+  .overlay.open { opacity:1; pointer-events:all; }
+  .modal {
+    background:#0e1e33; border:1px solid rgba(201,162,39,0.25); border-radius:24px;
+    padding:28px 24px; width:100%; max-width:480px; max-height:92vh; overflow-y:auto;
+    transform:scale(0.95); transition:transform 0.2s; box-shadow:0 24px 64px rgba(0,0,0,0.6);
+    scrollbar-width:thin; scrollbar-color:rgba(201,162,39,0.2) transparent;
+  }
+  .overlay.open .modal { transform:scale(1); }
+  .modal-title { font-family:'Fraunces',serif; font-size:1.4rem; font-style:italic; color:var(--gold-mid); margin-bottom:20px; }
+  .form-group  { margin-bottom:16px; }
+  .form-label  { font-size:0.72rem; font-weight:600; color:var(--mid); text-transform:uppercase; letter-spacing:1px; margin-bottom:6px; display:block; }
+  .form-label-note { font-size:0.68rem; color:var(--muted); font-weight:400; text-transform:none; letter-spacing:0; margin-left:6px; }
+  .form-input,.form-textarea,.form-sel {
+    width:100%; background:rgba(255,255,255,0.05); border:1.5px solid var(--rule-strong);
+    border-radius:12px; padding:11px 14px; color:var(--text);
+    font-family:'Figtree',sans-serif; font-size:0.85rem; outline:none; transition:border-color 0.15s;
+  }
+  .form-input:focus,.form-textarea:focus,.form-sel:focus { border-color:var(--gold); }
+  .form-input::placeholder,.form-textarea::placeholder { color:var(--muted); }
+  .form-textarea { resize:vertical; min-height:75px; }
+  .form-sel { appearance:none; cursor:pointer; }
+  .form-sel option { background:#0d1b2e; }
+  .score-display { display:flex; align-items:center; gap:14px; }
+  .score-big { font-family:'Fraunces',serif; font-size:2.4rem; font-style:italic; color:var(--gold-mid); min-width:50px; text-align:center; line-height:1; }
+  input[type=range] { flex:1; -webkit-appearance:none; height:4px; background:rgba(255,255,255,0.1); border-radius:2px; outline:none; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:18px; height:18px; border-radius:50%; background:var(--gold); cursor:pointer; box-shadow:0 2px 8px rgba(201,162,39,0.4); }
+  .score-note { font-size:0.67rem; color:var(--muted); margin-top:5px; font-style:italic; min-height:14px; }
+
+  /* ── PRODUCT ROWS ── */
+  .prod-list { display:flex; flex-direction:column; gap:8px; margin-bottom:8px; }
+  .prod-row {
+    background:rgba(255,255,255,0.04); border:1px solid var(--rule-strong);
+    border-radius:12px; padding:10px 12px;
+    display:grid; grid-template-columns:1fr auto 28px;
+    gap:10px; align-items:center; animation:fadeUp 0.2s ease both;
+  }
+  .prod-sel { width:100%; background:transparent; border:none; border-bottom:1px solid var(--rule-strong); color:var(--text); font-family:'Figtree',sans-serif; font-size:0.84rem; outline:none; padding-bottom:3px; cursor:pointer; appearance:none; transition:border-color 0.15s; }
+  .prod-sel:focus { border-bottom-color:var(--gold); }
+  .prod-sel option { background:#0e1e33; color:var(--text); }
+  .prod-new { width:100%; background:transparent; border:none; border-bottom:1.5px solid var(--gold); color:var(--text); font-family:'Figtree',sans-serif; font-size:0.84rem; outline:none; padding-bottom:3px; }
+  .prod-new::placeholder { color:var(--muted); }
+  .prod-score-wrap { display:flex; align-items:center; gap:7px; flex-shrink:0; }
+  .prod-score-num  { font-family:'Fraunces',serif; font-size:1rem; font-style:italic; color:var(--gold-mid); min-width:28px; text-align:center; }
+  .prod-slider     { width:80px; -webkit-appearance:none; height:3px; background:rgba(255,255,255,0.1); border-radius:2px; outline:none; flex:none; }
+  .prod-slider::-webkit-slider-thumb { -webkit-appearance:none; width:13px; height:13px; border-radius:50%; background:var(--gold); cursor:pointer; }
+  .prod-remove { width:26px; height:26px; border-radius:8px; border:none; background:rgba(255,255,255,0.05); color:var(--muted); font-size:0.75rem; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background 0.15s,color 0.15s; }
+  .prod-remove:hover { background:rgba(220,60,60,0.15); color:#e05555; }
+  .add-prod-btn { width:100%; background:rgba(255,255,255,0.03); border:1.5px dashed var(--rule-strong); border-radius:12px; padding:9px; color:var(--mid); font-family:'Figtree',sans-serif; font-size:0.78rem; cursor:pointer; transition:border-color 0.15s,color 0.15s; display:flex; align-items:center; justify-content:center; gap:6px; }
+  .add-prod-btn:hover { border-color:var(--gold); color:var(--gold); }
+
+  /* ── ACCESOS ── */
+  .acc-section-title { font-size:0.68rem; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:1.5px; margin:20px 0 10px; display:flex; align-items:center; gap:8px; }
+  .acc-section-title::after { content:''; flex:1; height:1px; background:var(--rule); }
+  .acc-user-row { background:rgba(255,255,255,0.04); border:1px solid var(--rule-strong); border-radius:12px; padding:12px 14px; display:grid; grid-template-columns:1fr 1fr auto; gap:10px; align-items:center; margin-bottom:8px; animation:fadeUp 0.2s ease both; }
+  .acc-user-name { font-size:0.85rem; font-weight:600; color:var(--gold-mid); }
+  .acc-pass-input { background:rgba(255,255,255,0.05); border:1.5px solid var(--rule-strong); border-radius:9px; padding:8px 11px; color:var(--text); font-family:'Figtree',sans-serif; font-size:0.8rem; outline:none; transition:border-color 0.15s; width:100%; }
+  .acc-pass-input:focus { border-color:var(--gold); }
+  .acc-pass-input::placeholder { color:var(--muted); }
+  .acc-save-btn { background:var(--gold-soft); color:var(--gold-mid); border:1px solid rgba(201,162,39,0.3); border-radius:9px; padding:8px 12px; font-family:'Figtree',sans-serif; font-size:0.75rem; font-weight:700; cursor:pointer; white-space:nowrap; transition:background 0.15s; }
+  .acc-save-btn:hover { background:rgba(201,162,39,0.25); }
+  .acc-delete-btn { background:rgba(220,60,60,0.08); color:#c45; border:1px solid rgba(220,60,60,0.2); border-radius:9px; padding:8px 10px; font-family:'Figtree',sans-serif; font-size:0.75rem; font-weight:700; cursor:pointer; transition:background 0.15s; margin-left:4px; }
+  .acc-delete-btn:hover { background:rgba(220,60,60,0.18); }
+  .acc-new-row { display:grid; grid-template-columns:1fr 1fr auto; gap:10px; align-items:center; margin-top:4px; }
+  .acc-feedback { font-size:0.72rem; text-align:center; margin-top:8px; min-height:16px; }
+  .acc-feedback.ok  { color:#4caf90; }
+  .acc-feedback.err { color:#e05555; }
+
+  /* ── FORM ACTIONS ── */
+  .form-actions { display:flex; gap:10px; margin-top:22px; }
+  .btn-cancel { flex:1; background:rgba(255,255,255,0.05); color:var(--mid); border:1.5px solid var(--rule-strong); border-radius:12px; padding:12px; font-family:'Figtree',sans-serif; font-size:0.85rem; font-weight:600; cursor:pointer; transition:background 0.15s; }
+  .btn-cancel:hover { background:rgba(255,255,255,0.09); }
+  .btn-save { flex:2; background:var(--gold); color:#0d1b2e; border:none; border-radius:12px; padding:12px; font-family:'Figtree',sans-serif; font-size:0.85rem; font-weight:700; cursor:pointer; transition:transform 0.15s,box-shadow 0.15s; box-shadow:0 2px 12px rgba(201,162,39,0.3); }
+  .btn-save:hover { transform:translateY(-1px); box-shadow:0 4px 20px rgba(201,162,39,0.45); }
+  .btn-save:disabled { opacity:0.5; cursor:not-allowed; transform:none; }
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="loading-screen">
+  <div class="loading-logo">Sabores del Barrio</div>
+  <div class="spinner"></div>
+  <div class="loading-msg">Conectando...</div>
+</div>
+
+<!-- LOGIN -->
+<div class="login-screen" id="login-screen" style="display:none">
+  <div class="login-backdrop"></div>
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="l-title">Sabores del Barrio</div>
+      <div class="login-divider"></div>
+      <div class="l-sub">📍 Humboldt y alrededores</div>
+    </div>
+    <label class="login-label">Usuario</label>
+    <input class="login-input" id="login-user" placeholder="Tu nombre..." onkeydown="if(event.key==='Enter')document.getElementById('login-pass').focus()" />
+    <label class="login-label">Contraseña</label>
+    <input class="login-input" type="password" id="login-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()" />
+    <button class="login-btn" onclick="doLogin()">Ingresar</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app-root" style="display:none">
+
+<nav>
+  <div class="brand">Sabores del Barrio <span>📍 Humboldt y alrededores</span></div>
+  <div class="nav-right">
+    <button class="accesos-btn" onclick="openAccesos()">🔑 Accesos</button>
+    <button class="add-btn" onclick="openModal()">+ Agregar reseña</button>
+  </div>
+</nav>
+
+<div class="main">
+  <div class="hero-band">
+    <div class="hero-left">
+      <h1><em>Nuestra guía gastronómica</em></h1>
+      <p>Puntuamos y anotamos los mejores lugares que visitamos para recomendar y volver a los mejores!</p>
+    </div>
+    <div class="hero-stats">
+      <div class="hstat"><div class="hstat-val" id="stat-total">–</div><div class="hstat-lbl">Reseñas</div></div>
+      <div class="hstat-div"></div>
+      <div class="hstat"><div class="hstat-val" id="stat-avg">–</div><div class="hstat-lbl">Promedio</div></div>
+      <div class="hstat-div"></div>
+      <div class="hstat"><div class="hstat-val" id="stat-top">–</div><div class="hstat-lbl">Mejor</div></div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab on" onclick="setTab('recientes')">Todos</div>
+    <div class="tab"    onclick="setTab('favoritos')">⭐ Favoritos</div>
+    <div class="tab"    onclick="setTab('filtrar')">🔍 Filtrar</div>
+  </div>
+
+  <div class="filter-row" id="filter-row" style="display:none">
+    <select class="filter-select" id="filter-tipo" onchange="onFilterTipoChange()">
+      <option value="todos">Todos</option>
+      <option value="producto">Por producto</option>
+      <option value="fecha">Por fecha</option>
+    </select>
+    <select class="filter-select" id="filter-sub" style="display:none" onchange="renderCards()"></select>
+  </div>
+
+  <div class="section-label" id="section-label">Últimas 10 reseñas</div>
+  <div class="card-grid" id="card-grid"></div>
+</div>
+
+<!-- MODAL RESEÑA -->
+<div class="overlay" id="overlay" onclick="handleOverlayClick(event)">
+  <div class="modal">
+    <div class="modal-header" style="display:flex;align-items:center;gap:10px;margin-bottom:20px;flex-wrap:wrap;">
+      <div class="modal-title" style="margin-bottom:0">Nueva reseña</div>
+      <div style="display:flex;align-items:center;gap:7px;margin-left:auto;">
+        <span style="font-size:0.72rem;font-weight:600;color:var(--mid);text-transform:uppercase;letter-spacing:1px;white-space:nowrap;">Opinión de:</span>
+        <select class="form-sel" id="f-opinion" style="width:auto;padding:7px 12px;font-size:0.82rem;"></select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Lugar</label>
+      <input class="form-input" id="f-lugar" placeholder="Ej: La Pizzería de la Esquina" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Categoría</label>
+      <select class="form-sel" id="f-categoria">
+        <option value="">Seleccioná una categoría</option>
+        <option>Pizzería</option><option>Parrilla</option><option>Cafetería</option>
+        <option>Restaurante</option><option>Sushi</option><option>Heladería</option>
+        <option>Pastelería</option><option>Empanadas</option><option>Delivery</option>
+        <option>Bar</option><option>Otro</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Productos <span class="form-label-note">— elegí de la lista o "Agregar nuevo"</span></label>
+      <div class="prod-list" id="prod-list"></div>
+      <button type="button" class="add-prod-btn" onclick="addProductRow()">＋ Agregar producto</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Puntaje general</label>
+      <div class="score-display">
+        <div class="score-big" id="score-val">7.0</div>
+        <input type="range" id="f-score" min="1" max="10" step="0.5" value="7"
+          oninput="document.getElementById('score-val').textContent=parseFloat(this.value).toFixed(1);document.getElementById('score-note').textContent=''" />
+      </div>
+      <div class="score-note" id="score-note"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Nota / comentario</label>
+      <textarea class="form-textarea" id="f-nota" placeholder="¿Qué destacás? ¿Volvés?"></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Fecha de visita</label>
+      <input class="form-input" type="date" id="f-fecha" />
+    </div>
+    <div class="form-actions">
+      <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
+      <button class="btn-save" id="btn-save" onclick="saveReview()">Guardar reseña</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ACCESOS -->
+<div class="overlay" id="overlay-accesos" onclick="handleAccesosOverlay(event)">
+  <div class="modal" style="max-width:440px;">
+    <div class="modal-title">🔑 Accesos</div>
+    <div class="acc-section-title">Usuarios existentes</div>
+    <div id="acc-users-list"></div>
+    <div class="acc-section-title">Crear nuevo usuario</div>
+    <div class="acc-new-row">
+      <input class="acc-pass-input" id="acc-new-name" placeholder="Nombre de usuario" />
+      <input class="acc-pass-input" type="password" id="acc-new-pass" placeholder="Contraseña" />
+      <button class="acc-save-btn" onclick="createUser()">Crear</button>
+    </div>
+    <div class="acc-feedback" id="acc-feedback"></div>
+    <div class="form-actions" style="margin-top:20px;">
+      <button class="btn-cancel" onclick="closeAccesos()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+</div><!-- end app-root -->
+
+<script>
+// ── SUPABASE ──────────────────────────────────────────────
+const SUPA_URL = 'https://vrvntetgazlpuxodwadh.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZydm50ZXRnYXpscHV4b2R3YWRoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1ODczMDksImV4cCI6MjA5NDE2MzMwOX0.GG3uPEOvIYZCUGiqp0Ppv9ldayyC_sD8u-UMlBMqoeg';
+const db = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+// ── STATE ─────────────────────────────────────────────────
+const SESSION_KEY = 'sabores_session';
+let reviews    = [];
+let dbUsers    = [];
+let currentTab = 'recientes';
+let formProds  = [];
+
+// ── INIT ──────────────────────────────────────────────────
+async function init() {
+  try {
+    await loadAllData();
+    checkSession();
+  } catch(e) {
+    document.getElementById('loading-screen').innerHTML =
+      `<div class="loading-logo">Error de conexión</div><div class="loading-msg" style="color:#e05555">No se pudo conectar a la base de datos.<br>Revisá tu conexión e intentá de nuevo.</div>`;
+  }
+}
+
+async function loadAllData() {
+  // Load reviews with products
+  const { data: resenas, error: e1 } = await db.from('resenas').select('*').order('fecha', { ascending:false });
+  if (e1) throw e1;
+  const { data: prods, error: e2 } = await db.from('productos').select('*');
+  if (e2) throw e2;
+  // Load users
+  const { data: users, error: e3 } = await db.from('usuarios').select('id,username');
+  if (e3) throw e3;
+
+  // Merge products into reviews
+  reviews = resenas.map(r => ({
+    ...r,
+    productos: prods.filter(p => p.resena_id === r.id).map(p => ({ nombre:p.nombre, score:p.score }))
+  }));
+  dbUsers = users;
+}
+
+function checkSession() {
+  document.getElementById('loading-screen').style.display = 'none';
+  const session = sessionStorage.getItem(SESSION_KEY);
+  if (session) {
+    document.getElementById('app-root').style.display = 'block';
+    syncOpinionDropdown();
+    renderCards();
+  } else {
+    document.getElementById('login-screen').style.display = 'flex';
+    document.body.classList.add('login-active');
+  }
+}
+
+// ── LOGIN ─────────────────────────────────────────────────
+async function doLogin() {
+  const user  = document.getElementById('login-user').value.trim().toLowerCase();
+  const pass  = document.getElementById('login-pass').value;
+  const errEl = document.getElementById('login-error');
+  errEl.textContent = '';
+
+  const { data, error } = await db.from('usuarios').select('id,username').eq('username', user).eq('password', pass).single();
+  if (error || !data) {
+    errEl.textContent = 'Usuario o contraseña incorrectos.';
+    document.getElementById('login-pass').value = '';
+    return;
+  }
+  sessionStorage.setItem(SESSION_KEY, user);
+  document.getElementById('login-screen').style.display = 'none';
+  document.body.classList.remove('login-active');
+  document.getElementById('app-root').style.display = 'block';
+  syncOpinionDropdown();
+  renderCards();
+}
+
+// ── TABS ──────────────────────────────────────────────────
+function setTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach((el,i) =>
+    el.classList.toggle('on', ['recientes','favoritos','filtrar'][i] === tab));
+  document.getElementById('filter-row').style.display = tab === 'filtrar' ? 'flex' : 'none';
+  if (tab === 'filtrar') {
+    document.getElementById('filter-tipo').value = 'todos';
+    document.getElementById('filter-sub').style.display = 'none';
+  }
+  document.getElementById('section-label').textContent =
+    {recientes:'Últimas 10 reseñas', favoritos:'Top 25 mejores puntajes', filtrar:'Resultados del filtro'}[tab];
+  renderCards();
+}
+
+// ── FILTER ────────────────────────────────────────────────
+function allProductNames() {
+  const s = new Set();
+  reviews.forEach(r => (r.productos||[]).forEach(p => s.add(p.nombre)));
+  return [...s].sort((a,b) => a.localeCompare(b,'es'));
+}
+
+function onFilterTipoChange() {
+  const tipo = document.getElementById('filter-tipo').value;
+  const sub  = document.getElementById('filter-sub');
+  if (tipo === 'producto') {
+    sub.innerHTML = '<option value="">— Todos los productos —</option>' +
+      allProductNames().map(n => `<option value="${n}">${n}</option>`).join('');
+    sub.style.display = 'block';
+  } else if (tipo === 'fecha') {
+    const months = [...new Set(reviews.map(r => r.fecha.slice(0,7)))].sort().reverse();
+    const MN = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    sub.innerHTML = '<option value="">— Todos los meses —</option>' +
+      months.map(m => { const[y,mo]=m.split('-'); return `<option value="${m}">${MN[+mo-1]} ${y}</option>`; }).join('');
+    sub.style.display = 'block';
+  } else { sub.style.display = 'none'; }
+  renderCards();
+}
+
+function filteredReviews() {
+  const tipo = document.getElementById('filter-tipo').value;
+  const sub  = document.getElementById('filter-sub').value;
+  let res = [...reviews];
+  if (tipo === 'producto' && sub) res = res.filter(r => (r.productos||[]).some(p => p.nombre === sub));
+  else if (tipo === 'fecha' && sub) res = res.filter(r => r.fecha.startsWith(sub));
+  return res.sort((a,b) => new Date(b.fecha) - new Date(a.fecha));
+}
+
+// ── RENDER CARDS ──────────────────────────────────────────
+function getVisible() {
+  if (currentTab === 'recientes') return [...reviews].sort((a,b) => new Date(b.fecha)-new Date(a.fecha)).slice(0,10);
+  if (currentTab === 'favoritos') return [...reviews].sort((a,b) => b.score-a.score).slice(0,25);
+  return filteredReviews();
+}
+
+const C = 138.2;
+const EMOJI = {Pizzería:'🍕',Parrilla:'🥩',Cafetería:'☕',Restaurante:'🍽️',Sushi:'🍣',Heladería:'🍦',Pastelería:'🥐',Empanadas:'🥟',Delivery:'🛵',Bar:'🍺',Otro:'🍴'};
+function fmtDate(d) { return new Date(d+'T12:00:00').toLocaleDateString('es-AR',{day:'numeric',month:'short',year:'numeric'}); }
+
+function renderCards() {
+  const grid = document.getElementById('card-grid');
+  const vis  = getVisible();
+  if (!vis.length) {
+    grid.innerHTML = `<div class="empty"><div class="icon">🍽️</div><p>No hay reseñas todavía.<br>¡Agregá la primera!</p></div>`;
+    return updateStats();
+  }
+  grid.innerHTML = vis.map((r,i) => {
+    const off   = (C - (r.score/10)*C).toFixed(1);
+    const prods = r.productos || [];
+    const prodHtml = prods.length ? `<div class="card-prod-list">${prods.map(p=>`
+      <div class="card-prod-item">
+        <span class="card-prod-name">${p.nombre}</span>
+        <div class="card-prod-bar-wrap"><div class="card-prod-bar-inner"><div class="card-prod-bar" style="width:${p.score*10}%"></div></div></div>
+        <span class="card-prod-score">${parseFloat(p.score).toFixed(1)}</span>
+      </div>`).join('')}</div>` : '';
+    return `<div class="card" style="animation:slideIn 0.35s ${i*0.05}s ease both">
+      <div class="icon-box">${EMOJI[r.categoria]||'🍴'}</div>
+      <div class="card-info">
+        <div class="card-name">${r.lugar}</div>
+        <div class="card-meta">
+          <span class="pill pill-cat">${r.categoria}</span>
+          ${r.opinion?`<span class="pill pill-info">👤 ${r.opinion}</span>`:''}
+        </div>
+        ${prodHtml}
+        ${r.nota?`<div class="card-note">"${r.nota}"</div>`:''}
+        <div class="card-date">📅 ${fmtDate(r.fecha)}</div>
+      </div>
+      <div class="card-right">
+        <div class="score-ring">
+          <svg viewBox="0 0 56 56" width="56" height="56">
+            <circle class="ring-bg" cx="28" cy="28" r="22"/>
+            <circle class="ring-fill" cx="28" cy="28" r="22" stroke-dasharray="${C}" stroke-dashoffset="${off}"/>
+          </svg>
+          <div class="ring-label">${parseFloat(r.score).toFixed(1)}</div>
+        </div>
+        <div class="visits-tag">${fmtDate(r.fecha).split(' ')[2]||''}</div>
+      </div>
+    </div>`;
+  }).join('');
+  updateStats();
+}
+
+function updateStats() {
+  document.getElementById('stat-total').textContent = reviews.length;
+  if (!reviews.length) { document.getElementById('stat-avg').textContent='–'; document.getElementById('stat-top').textContent='–'; return; }
+  const avg = reviews.reduce((s,r) => s+parseFloat(r.score), 0) / reviews.length;
+  document.getElementById('stat-avg').textContent = avg.toFixed(1);
+  document.getElementById('stat-top').textContent = Math.max(...reviews.map(r=>parseFloat(r.score))).toFixed(1);
+}
+
+// ── MODAL RESEÑA ──────────────────────────────────────────
+function openModal() {
+  formProds = [];
+  renderProdList();
+  ['f-lugar','f-nota'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('f-categoria').value = '';
+  document.getElementById('f-opinion').value = document.getElementById('f-opinion').options[0]?.value || '';
+  document.getElementById('f-score').value = 7;
+  document.getElementById('score-val').textContent = '7.0';
+  document.getElementById('score-note').textContent = '';
+  document.getElementById('f-fecha').value = new Date().toISOString().slice(0,10);
+  document.getElementById('btn-save').disabled = false;
+  document.getElementById('overlay').classList.add('open');
+}
+function closeModal()  { document.getElementById('overlay').classList.remove('open'); }
+function handleOverlayClick(e) { if(e.target===document.getElementById('overlay')) closeModal(); }
+
+// ── PRODUCT ROWS ──────────────────────────────────────────
+function addProductRow() {
+  formProds.push({nombre:'', score:7, isNew:false});
+  renderProdList();
+  setTimeout(() => {
+    const rows = document.querySelectorAll('.prod-sel,.prod-new');
+    if (rows.length) rows[rows.length-1].focus();
+  }, 40);
+}
+function removeProd(i) { formProds.splice(i,1); renderProdList(); recalc(); }
+function onProdSel(i,v) {
+  if (v==='__new__') { formProds[i].isNew=true; formProds[i].nombre=''; }
+  else { formProds[i].isNew=false; formProds[i].nombre=v; }
+  renderProdList();
+  if (v==='__new__') setTimeout(()=>{ const el=document.getElementById(`pnew-${i}`); if(el) el.focus(); }, 30);
+}
+function onProdName(i,v) { formProds[i].nombre = v; }
+function onProdScore(i,v) {
+  formProds[i].score = parseFloat(v);
+  document.getElementById(`psn-${i}`).textContent = parseFloat(v).toFixed(1);
+  recalc();
+}
+function recalc() {
+  const filled = formProds.filter(p => p.nombre.trim());
+  if (!filled.length) { document.getElementById('score-note').textContent=''; return; }
+  const avg = filled.reduce((s,p)=>s+p.score,0)/filled.length;
+  document.getElementById('f-score').value = Math.round(avg*2)/2;
+  document.getElementById('score-val').textContent = avg.toFixed(1);
+  document.getElementById('score-note').textContent = `Promedio de ${filled.length} producto${filled.length>1?'s':''} — podés ajustarlo manualmente.`;
+}
+function renderProdList() {
+  const known = allProductNames();
+  const list  = document.getElementById('prod-list');
+  if (!formProds.length) { list.innerHTML=''; return; }
+  list.innerHTML = formProds.map((p,i) => {
+    const sel = `<select class="prod-sel" onchange="onProdSel(${i},this.value)">
+      <option value="" disabled ${!p.isNew&&p.nombre===''?'selected':''}>Elegí un producto...</option>
+      ${known.map(n=>`<option value="${n}" ${!p.isNew&&p.nombre===n?'selected':''}>${n}</option>`).join('')}
+      <option value="__new__" ${p.isNew?'selected':''}>＋ Agregar nuevo...</option>
+    </select>`;
+    const inp = `<input id="pnew-${i}" class="prod-new" placeholder="Nombre del producto" value="${p.nombre}" oninput="onProdName(${i},this.value)" />`;
+    return `<div class="prod-row">
+      <div>${p.isNew?inp:sel}</div>
+      <div class="prod-score-wrap">
+        <span class="prod-score-num" id="psn-${i}">${p.score.toFixed(1)}</span>
+        <input type="range" class="prod-slider" min="1" max="10" step="0.5" value="${p.score}" oninput="onProdScore(${i},this.value)" />
+      </div>
+      <button class="prod-remove" onclick="removeProd(${i})">✕</button>
+    </div>`;
+  }).join('');
+}
+
+// ── SAVE REVIEW ───────────────────────────────────────────
+async function saveReview() {
+  const lugar  = document.getElementById('f-lugar').value.trim();
+  const cat    = document.getElementById('f-categoria').value;
+  const score  = parseFloat(document.getElementById('f-score').value);
+  const nota   = document.getElementById('f-nota').value.trim();
+  const fecha  = document.getElementById('f-fecha').value;
+  const opinion= document.getElementById('f-opinion').value;
+
+  if (!lugar) { alert('Por favor ingresá el nombre del lugar.'); return; }
+  if (!cat)   { alert('Por favor seleccioná una categoría.'); return; }
+  if (!fecha) { alert('Por favor ingresá la fecha de visita.'); return; }
+  for (let i=0; i<formProds.length; i++) {
+    if (!formProds[i].nombre.trim()) { alert(`El producto #${i+1} no tiene nombre.`); return; }
+  }
+
+  const btn = document.getElementById('btn-save');
+  btn.disabled = true;
+  btn.textContent = 'Guardando...';
+
+  try {
+    // Insert review
+    const { data: newResena, error: e1 } = await db.from('resenas')
+      .insert({ lugar, categoria:cat, opinion, score, nota, fecha })
+      .select().single();
+    if (e1) throw e1;
+
+    // Insert products
+    if (formProds.length) {
+      const { error: e2 } = await db.from('productos').insert(
+        formProds.map(p => ({ resena_id:newResena.id, nombre:p.nombre.trim(), score:p.score }))
+      );
+      if (e2) throw e2;
+    }
+
+    // Reload all data and re-render
+    await loadAllData();
+    if (currentTab==='filtrar') onFilterTipoChange();
+    closeModal();
+    renderCards();
+  } catch(e) {
+    alert('Error al guardar: ' + e.message);
+    btn.disabled = false;
+    btn.textContent = 'Guardar reseña';
+  }
+}
+
+// ── ACCESOS ───────────────────────────────────────────────
+async function openAccesos() {
+  await renderAccesosUsers();
+  document.getElementById('acc-new-name').value = '';
+  document.getElementById('acc-new-pass').value = '';
+  document.getElementById('acc-feedback').textContent = '';
+  document.getElementById('overlay-accesos').classList.add('open');
+}
+function closeAccesos() { document.getElementById('overlay-accesos').classList.remove('open'); }
+function handleAccesosOverlay(e) { if(e.target===document.getElementById('overlay-accesos')) closeAccesos(); }
+
+async function renderAccesosUsers() {
+  const { data } = await db.from('usuarios').select('id,username');
+  dbUsers = data || [];
+  const list = document.getElementById('acc-users-list');
+  if (!dbUsers.length) { list.innerHTML='<p style="font-size:0.8rem;color:var(--muted);text-align:center;padding:12px">No hay usuarios.</p>'; return; }
+  list.innerHTML = dbUsers.map(u => `
+    <div class="acc-user-row">
+      <div class="acc-user-name">👤 ${u.username.charAt(0).toUpperCase()+u.username.slice(1)}</div>
+      <input class="acc-pass-input" type="password" id="pass-${u.id}" placeholder="Nueva contraseña..." />
+      <div style="display:flex;gap:4px;">
+        <button class="acc-save-btn" onclick="changePassword('${u.id}','${u.username}')">Guardar</button>
+        <button class="acc-delete-btn" onclick="deleteUser('${u.id}','${u.username}')">✕</button>
+      </div>
+    </div>`).join('');
+}
+
+async function changePassword(id, username) {
+  const val = document.getElementById(`pass-${id}`).value.trim();
+  if (!val) { showAccFeedback('La contraseña no puede estar vacía.','err'); return; }
+  const { error } = await db.from('usuarios').update({ password:val }).eq('id', id);
+  if (error) { showAccFeedback('Error al actualizar.','err'); return; }
+  document.getElementById(`pass-${id}`).value = '';
+  showAccFeedback(`Contraseña de ${username.charAt(0).toUpperCase()+username.slice(1)} actualizada ✓`,'ok');
+}
+
+async function deleteUser(id, username) {
+  if (!confirm(`¿Eliminás el usuario "${username}"?`)) return;
+  const { error } = await db.from('usuarios').delete().eq('id', id);
+  if (error) { showAccFeedback('Error al eliminar.','err'); return; }
+  await renderAccesosUsers();
+  syncOpinionDropdown();
+  showAccFeedback(`Usuario "${username}" eliminado.`,'ok');
+}
+
+async function createUser() {
+  const name = document.getElementById('acc-new-name').value.trim().toLowerCase();
+  const pass = document.getElementById('acc-new-pass').value.trim();
+  if (!name) { showAccFeedback('Ingresá un nombre de usuario.','err'); return; }
+  if (!pass) { showAccFeedback('Ingresá una contraseña.','err'); return; }
+  const { error } = await db.from('usuarios').insert({ username:name, password:pass });
+  if (error) {
+    showAccFeedback(error.code==='23505'?`El usuario "${name}" ya existe.`:'Error al crear usuario.','err');
+    return;
+  }
+  document.getElementById('acc-new-name').value = '';
+  document.getElementById('acc-new-pass').value = '';
+  await renderAccesosUsers();
+  syncOpinionDropdown();
+  showAccFeedback(`Usuario "${name.charAt(0).toUpperCase()+name.slice(1)}" creado ✓`,'ok');
+}
+
+function showAccFeedback(msg, type) {
+  const el = document.getElementById('acc-feedback');
+  el.textContent = msg; el.className = `acc-feedback ${type}`;
+  setTimeout(() => { if(el.textContent===msg){ el.textContent=''; el.className='acc-feedback'; }}, 3000);
+}
+
+async function syncOpinionDropdown() {
+  const { data } = await db.from('usuarios').select('username');
+  const names = (data||[]).map(u => u.username.charAt(0).toUpperCase()+u.username.slice(1));
+  const combos = [...names];
+  if (names.length > 1) combos.push(names.join(' y '));
+  const sel = document.getElementById('f-opinion');
+  if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = combos.map(n => `<option value="${n}" ${n===cur?'selected':''}>${n}</option>`).join('');
+}
+
+// ── START ─────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>
