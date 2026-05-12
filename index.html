@@ -262,6 +262,91 @@
   .acc-feedback.ok  { color:#4caf90; }
   .acc-feedback.err { color:#e05555; }
 
+  /* ── DETAIL PANEL ── */
+  .detail-overlay {
+    position:fixed; inset:0; background:rgba(0,0,0,0.7); backdrop-filter:blur(8px);
+    z-index:200; display:flex; align-items:center; justify-content:center;
+    padding:20px; opacity:0; pointer-events:none; transition:opacity 0.22s;
+  }
+  .detail-overlay.open { opacity:1; pointer-events:all; }
+  .detail-panel {
+    background:#0e1e33; border:1px solid rgba(201,162,39,0.3);
+    border-radius:26px; padding:0; width:100%; max-width:520px; max-height:90vh;
+    overflow:hidden; display:flex; flex-direction:column;
+    transform:scale(0.94) translateY(16px); transition:transform 0.22s;
+    box-shadow:0 32px 80px rgba(0,0,0,0.7);
+  }
+  .detail-overlay.open .detail-panel { transform:scale(1) translateY(0); }
+
+  /* header with big score */
+  .detail-header {
+    background:linear-gradient(160deg,rgba(201,162,39,0.08) 0%,transparent 60%);
+    border-bottom:1px solid rgba(201,162,39,0.12);
+    padding:24px 26px 20px;
+    display:flex; align-items:flex-start; gap:18px;
+  }
+  .detail-icon {
+    width:64px; height:64px; border-radius:18px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center; font-size:2rem;
+    background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.08);
+  }
+  .detail-header-info { flex:1; }
+  .detail-lugar {
+    font-family:'Fraunces',serif; font-size:1.6rem; font-style:italic;
+    color:var(--gold-mid); line-height:1.1; margin-bottom:6px;
+  }
+  .detail-pills { display:flex; gap:6px; flex-wrap:wrap; }
+  .detail-score-col { text-align:center; flex-shrink:0; }
+  .detail-score-num {
+    font-family:'Fraunces',serif; font-size:3rem; font-style:italic;
+    font-weight:700; color:#fff; line-height:1;
+  }
+  .detail-score-ring { position:relative; width:72px; height:72px; margin:0 auto 4px; }
+  .detail-score-ring svg { transform:rotate(-90deg); }
+  .detail-score-label { font-size:0.62rem; color:var(--muted); text-transform:uppercase; letter-spacing:1px; }
+
+  /* body */
+  .detail-body { padding:20px 26px 24px; overflow-y:auto; flex:1; scrollbar-width:thin; scrollbar-color:rgba(201,162,39,0.15) transparent; }
+  .detail-section-label { font-size:0.62rem; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:2px; margin:16px 0 8px; display:flex; align-items:center; gap:8px; }
+  .detail-section-label::after { content:''; flex:1; height:1px; background:var(--rule); }
+  .detail-prod-list { display:table; width:100%; border-spacing:0 5px; }
+  .detail-prod-item { display:table-row; }
+  .detail-prod-name  { display:table-cell; color:var(--text); font-size:0.84rem; padding-right:12px; vertical-align:middle; white-space:nowrap; }
+  .detail-prod-bar-wrap { display:table-cell; width:100%; vertical-align:middle; }
+  .detail-prod-bar-inner { height:3px; background:rgba(255,255,255,0.07); border-radius:2px; overflow:hidden; }
+  .detail-prod-bar { height:100%; background:var(--gold); border-radius:2px; opacity:0.65; }
+  .detail-prod-score { display:table-cell; font-family:'Fraunces',serif; font-style:italic; color:var(--gold-mid); font-size:0.95rem; font-weight:700; padding-left:10px; vertical-align:middle; text-align:right; white-space:nowrap; }
+  .detail-nota {
+    background:rgba(255,255,255,0.04); border-left:3px solid rgba(201,162,39,0.35);
+    border-radius:0 10px 10px 0; padding:12px 14px;
+    font-size:0.84rem; color:var(--mid); font-style:italic; line-height:1.6;
+  }
+  .detail-date { font-size:0.75rem; color:var(--muted); margin-top:14px; }
+
+  /* footer actions */
+  .detail-footer {
+    border-top:1px solid var(--rule-strong); padding:16px 26px;
+    display:flex; gap:10px;
+  }
+  .btn-detail-close {
+    flex:1; background:rgba(255,255,255,0.05); color:var(--mid);
+    border:1.5px solid var(--rule-strong); border-radius:12px; padding:11px;
+    font-family:'Figtree',sans-serif; font-size:0.85rem; font-weight:600; cursor:pointer; transition:background 0.15s;
+  }
+  .btn-detail-close:hover { background:rgba(255,255,255,0.09); }
+  .btn-detail-edit {
+    flex:2; background:var(--gold-soft); color:var(--gold-mid);
+    border:1.5px solid rgba(201,162,39,0.35); border-radius:12px; padding:11px;
+    font-family:'Figtree',sans-serif; font-size:0.85rem; font-weight:700; cursor:pointer; transition:background 0.15s;
+  }
+  .btn-detail-edit:hover { background:rgba(201,162,39,0.22); }
+  .btn-detail-delete {
+    flex:1; background:rgba(220,60,60,0.08); color:#e05555;
+    border:1.5px solid rgba(220,60,60,0.2); border-radius:12px; padding:11px;
+    font-family:'Figtree',sans-serif; font-size:0.85rem; font-weight:700; cursor:pointer; transition:background 0.15s;
+  }
+  .btn-detail-delete:hover { background:rgba(220,60,60,0.18); }
+
   /* ── FORM ACTIONS ── */
   .form-actions { display:flex; gap:10px; margin-top:22px; }
   .btn-cancel { flex:1; background:rgba(255,255,255,0.05); color:var(--mid); border:1.5px solid var(--rule-strong); border-radius:12px; padding:12px; font-family:'Figtree',sans-serif; font-size:0.85rem; font-weight:600; cursor:pointer; transition:background 0.15s; }
@@ -411,6 +496,39 @@
     <div class="acc-feedback" id="acc-feedback"></div>
     <div class="form-actions" style="margin-top:20px;">
       <button class="btn-cancel" onclick="closeAccesos()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL PANEL -->
+<div class="detail-overlay" id="detail-overlay" onclick="handleDetailOverlay(event)">
+  <div class="detail-panel">
+    <div class="detail-header">
+      <div class="detail-icon" id="d-icon"></div>
+      <div class="detail-header-info">
+        <div class="detail-lugar" id="d-lugar"></div>
+        <div class="detail-pills" id="d-pills"></div>
+      </div>
+      <div class="detail-score-col">
+        <div class="detail-score-ring">
+          <svg viewBox="0 0 72 72" width="72" height="72">
+            <circle class="ring-bg" cx="36" cy="36" r="30"/>
+            <circle id="d-ring-fill" class="ring-fill" cx="36" cy="36" r="30" stroke-dasharray="188.5"/>
+          </svg>
+          <div class="ring-label" id="d-score-num" style="font-size:1.2rem"></div>
+        </div>
+        <div class="detail-score-label">puntaje</div>
+      </div>
+    </div>
+    <div class="detail-body">
+      <div id="d-prods-section"></div>
+      <div id="d-nota-section"></div>
+      <div class="detail-date" id="d-date"></div>
+    </div>
+    <div class="detail-footer">
+      <button class="btn-detail-close" onclick="closeDetail()">Cerrar</button>
+      <button class="btn-detail-edit"  onclick="editFromDetail()">✏️ Editar</button>
+      <button class="btn-detail-delete" onclick="deleteFromDetail()">🗑 Borrar</button>
     </div>
   </div>
 </div>
@@ -568,7 +686,7 @@ function renderCards() {
         <div class="card-prod-bar-wrap"><div class="card-prod-bar-inner"><div class="card-prod-bar" style="width:${p.score*10}%"></div></div></div>
         <span class="card-prod-score">${parseFloat(p.score).toFixed(1)}</span>
       </div>`).join('')}</div>` : '';
-    return `<div class="card" style="animation:slideIn 0.35s ${i*0.05}s ease both">
+    return `<div class="card" onclick="openDetail(${r.id})" style="animation:slideIn 0.35s ${i*0.05}s ease both">
       <div class="icon-box">${EMOJI[r.categoria]||'🍴'}</div>
       <div class="card-info">
         <div class="card-name">${r.lugar}</div>
@@ -617,7 +735,12 @@ function openModal() {
   document.getElementById('btn-save').disabled = false;
   document.getElementById('overlay').classList.add('open');
 }
-function closeModal()  { document.getElementById('overlay').classList.remove('open'); }
+function closeModal()  {
+  document.getElementById('overlay').classList.remove('open');
+  const btn = document.getElementById('btn-save');
+  btn.textContent = 'Guardar reseña';
+  btn.onclick = saveReview;
+}
 function handleOverlayClick(e) { if(e.target===document.getElementById('overlay')) closeModal(); }
 
 // ── PRODUCT ROWS ──────────────────────────────────────────
@@ -796,6 +919,148 @@ async function syncOpinionDropdown() {
   if (!sel) return;
   const cur = sel.value;
   sel.innerHTML = combos.map(n => `<option value="${n}" ${n===cur?'selected':''}>${n}</option>`).join('');
+}
+
+// ── DETAIL PANEL ─────────────────────────────────────────
+let detailReviewId = null;
+
+function openDetail(id) {
+  const r = reviews.find(x => x.id === id);
+  if (!r) return;
+  detailReviewId = id;
+
+  const C2 = 188.5;
+  const off = (C2 - (r.score/10)*C2).toFixed(1);
+  document.getElementById('d-icon').textContent     = EMOJI[r.categoria]||'🍴';
+  document.getElementById('d-lugar').textContent    = r.lugar;
+  document.getElementById('d-score-num').textContent= parseFloat(r.score).toFixed(1);
+  document.getElementById('d-ring-fill').setAttribute('stroke-dashoffset', off);
+  document.getElementById('d-date').textContent     = '📅 ' + fmtDate(r.fecha);
+
+  // pills
+  document.getElementById('d-pills').innerHTML =
+    `<span class="pill pill-cat">${r.categoria}</span>` +
+    (r.opinion ? `<span class="pill pill-info">👤 ${r.opinion}</span>` : '');
+
+  // products
+  const prods = r.productos || [];
+  document.getElementById('d-prods-section').innerHTML = prods.length ? `
+    <div class="detail-section-label">Productos</div>
+    <div class="detail-prod-list">
+      ${prods.map(p=>`
+        <div class="detail-prod-item">
+          <span class="detail-prod-name">${p.nombre}</span>
+          <div class="detail-prod-bar-wrap"><div class="detail-prod-bar-inner"><div class="detail-prod-bar" style="width:${p.score*10}%"></div></div></div>
+          <span class="detail-prod-score">${parseFloat(p.score).toFixed(1)}</span>
+        </div>`).join('')}
+    </div>` : '';
+
+  // nota
+  document.getElementById('d-nota-section').innerHTML = r.nota ? `
+    <div class="detail-section-label">Comentario</div>
+    <div class="detail-nota">"${r.nota}"</div>` : '';
+
+  document.getElementById('detail-overlay').classList.add('open');
+}
+
+function closeDetail() {
+  document.getElementById('detail-overlay').classList.remove('open');
+  detailReviewId = null;
+}
+
+function handleDetailOverlay(e) {
+  if (e.target === document.getElementById('detail-overlay')) closeDetail();
+}
+
+function editFromDetail() {
+  const r = reviews.find(x => x.id === detailReviewId);
+  if (!r) return;
+  closeDetail();
+  openEditModal(r);
+}
+
+async function deleteFromDetail() {
+  const r = reviews.find(x => x.id === detailReviewId);
+  if (!r) return;
+  if (!confirm(`¿Borrar la reseña de "${r.lugar}"? Esta acción no se puede deshacer.`)) return;
+  try {
+    // productos se borran en cascada por la FK
+    const { error } = await db.from('resenas').delete().eq('id', r.id);
+    if (error) throw error;
+    await loadAllData();
+    closeDetail();
+    renderCards();
+  } catch(e) { alert('Error al borrar: ' + e.message); }
+}
+
+// ── EDIT MODAL ────────────────────────────────────────────
+function openEditModal(r) {
+  formProds = (r.productos||[]).map(p => ({ nombre:p.nombre, score:p.score, isNew:false }));
+  renderProdList();
+  document.getElementById('f-lugar').value    = r.lugar;
+  document.getElementById('f-categoria').value= r.categoria;
+  document.getElementById('f-nota').value     = r.nota || '';
+  document.getElementById('f-score').value    = r.score;
+  document.getElementById('score-val').textContent = parseFloat(r.score).toFixed(1);
+  document.getElementById('score-note').textContent = '';
+  document.getElementById('f-fecha').value    = r.fecha;
+  // set opinion
+  const sel = document.getElementById('f-opinion');
+  if (sel) { [...sel.options].forEach(o => { if(o.value===r.opinion) o.selected=true; }); }
+  // mark as edit mode
+  const btn = document.getElementById('btn-save');
+  btn.textContent = 'Guardar cambios';
+  btn.disabled    = false;
+  btn.onclick     = () => saveEdit(r.id);
+  document.getElementById('overlay').classList.add('open');
+}
+
+async function saveEdit(id) {
+  const lugar  = document.getElementById('f-lugar').value.trim();
+  const cat    = document.getElementById('f-categoria').value;
+  const score  = parseFloat(document.getElementById('f-score').value);
+  const nota   = document.getElementById('f-nota').value.trim();
+  const fecha  = document.getElementById('f-fecha').value;
+  const opinion= document.getElementById('f-opinion').value;
+
+  if (!lugar) { alert('Por favor ingresá el nombre del lugar.'); return; }
+  if (!cat)   { alert('Por favor seleccioná una categoría.'); return; }
+  if (!fecha) { alert('Por favor ingresá la fecha de visita.'); return; }
+  for (let i=0; i<formProds.length; i++) {
+    if (!formProds[i].nombre.trim()) { alert(`El producto #${i+1} no tiene nombre.`); return; }
+  }
+
+  const btn = document.getElementById('btn-save');
+  btn.disabled = true; btn.textContent = 'Guardando...';
+
+  try {
+    const { error:e1 } = await db.from('resenas')
+      .update({ lugar, categoria:cat, opinion, score, nota, fecha })
+      .eq('id', id);
+    if (e1) throw e1;
+
+    // replace products: delete old, insert new
+    const { error:e2 } = await db.from('productos').delete().eq('resena_id', id);
+    if (e2) throw e2;
+    if (formProds.length) {
+      const { error:e3 } = await db.from('productos').insert(
+        formProds.map(p => ({ resena_id:id, nombre:p.nombre.trim(), score:p.score }))
+      );
+      if (e3) throw e3;
+    }
+
+    await loadAllData();
+    closeModal();
+    // restore btn to normal add mode
+    const b = document.getElementById('btn-save');
+    b.textContent = 'Guardar reseña';
+    b.onclick = saveReview;
+    if (currentTab==='filtrar') onFilterTipoChange();
+    renderCards();
+  } catch(e) {
+    alert('Error al guardar: ' + e.message);
+    btn.disabled = false; btn.textContent = 'Guardar cambios';
+  }
 }
 
 // ── START ─────────────────────────────────────────────────
