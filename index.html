@@ -415,6 +415,20 @@
     <div class="tab"    onclick="setTab('filtrar')">🔍 Filtrar</div>
   </div>
 
+  <!-- Filtro de precio (solo en tab Todos) -->
+  <div class="filter-row" id="price-filter-row">
+    <span style="font-size:0.72rem;font-weight:600;color:var(--mid);white-space:nowrap;">💰 Hasta:</span>
+    <select class="filter-select" id="filter-precio" onchange="renderCards()" style="min-width:140px;">
+      <option value="">Sin límite</option>
+      <option value="5000">$5.000</option>
+      <option value="10000">$10.000</option>
+      <option value="20000">$20.000</option>
+      <option value="30000">$30.000</option>
+      <option value="50000">$50.000</option>
+      <option value="100000">$100.000</option>
+    </select>
+  </div>
+
   <div class="filter-row" id="filter-row" style="display:none">
     <select class="filter-select" id="filter-tipo" onchange="onFilterTipoChange()">
       <option value="todos">Todos</option>
@@ -473,6 +487,13 @@
     <div class="form-group">
       <label class="form-label">Fecha de visita</label>
       <input class="form-input" type="date" id="f-fecha" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Total de la cuenta <span class="form-label-note">— en pesos argentinos</span></label>
+      <div style="position:relative;">
+        <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:0.9rem;pointer-events:none;">$</span>
+        <input class="form-input" type="number" id="f-precio" placeholder="0" min="0" style="padding-left:28px;" />
+      </div>
     </div>
     <div class="form-actions">
       <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
@@ -617,6 +638,7 @@ function setTab(tab) {
   document.querySelectorAll('.tab').forEach((el,i) =>
     el.classList.toggle('on', ['recientes','favoritos','filtrar'][i] === tab));
   document.getElementById('filter-row').style.display = tab === 'filtrar' ? 'flex' : 'none';
+  document.getElementById('price-filter-row').style.display = tab === 'recientes' ? 'flex' : 'none';
   if (tab === 'filtrar') {
     document.getElementById('filter-tipo').value = 'todos';
     document.getElementById('filter-sub').style.display = 'none';
@@ -660,10 +682,21 @@ function filteredReviews() {
 }
 
 // ── RENDER CARDS ──────────────────────────────────────────
+function fmtPrecio(p) {
+  if (!p && p !== 0) return null;
+  return '$' + parseInt(p).toLocaleString('es-AR');
+}
+
 function getVisible() {
-  if (currentTab === 'recientes') return [...reviews].sort((a,b) => new Date(b.fecha)-new Date(a.fecha)).slice(0,10);
-  if (currentTab === 'favoritos') return [...reviews].sort((a,b) => b.score-a.score).slice(0,25);
-  return filteredReviews();
+  const maxP = document.getElementById('filter-precio')?.value;
+  let base;
+  if (currentTab === 'recientes') base = [...reviews].sort((a,b) => new Date(b.fecha)-new Date(a.fecha)).slice(0,10);
+  else if (currentTab === 'favoritos') base = [...reviews].sort((a,b) => b.score-a.score).slice(0,25);
+  else base = filteredReviews();
+  if (currentTab === 'recientes' && maxP) {
+    base = base.filter(r => r.precio != null && r.precio <= parseFloat(maxP));
+  }
+  return base;
 }
 
 const C = 138.2;
@@ -696,7 +729,7 @@ function renderCards() {
         </div>
         ${prodHtml}
         ${r.nota?`<div class="card-note">"${r.nota}"</div>`:''}
-        <div class="card-date">📅 ${fmtDate(r.fecha)}</div>
+        <div class="card-date">📅 ${fmtDate(r.fecha)}${r.precio?`<span style="margin-left:10px;color:var(--gold-mid);font-weight:600;">${fmtPrecio(r.precio)}</span>`:''}</div>
       </div>
       <div class="card-right">
         <div class="score-ring">
@@ -732,6 +765,7 @@ function openModal() {
   document.getElementById('score-val').textContent = '7.0';
   document.getElementById('score-note').textContent = '';
   document.getElementById('f-fecha').value = new Date().toISOString().slice(0,10);
+  document.getElementById('f-precio').value = '';
   document.getElementById('btn-save').disabled = false;
   document.getElementById('overlay').classList.add('open');
 }
@@ -803,6 +837,7 @@ async function saveReview() {
   const nota   = document.getElementById('f-nota').value.trim();
   const fecha  = document.getElementById('f-fecha').value;
   const opinion= document.getElementById('f-opinion').value;
+  const precio = document.getElementById('f-precio').value ? parseFloat(document.getElementById('f-precio').value) : null;
 
   if (!lugar) { alert('Por favor ingresá el nombre del lugar.'); return; }
   if (!cat)   { alert('Por favor seleccioná una categoría.'); return; }
@@ -818,7 +853,7 @@ async function saveReview() {
   try {
     // Insert review
     const { data: newResena, error: e1 } = await db.from('resenas')
-      .insert({ lugar, categoria:cat, opinion, score, nota, fecha })
+      .insert({ lugar, categoria:cat, opinion, score, nota, fecha, precio })
       .select().single();
     if (e1) throw e1;
 
@@ -935,7 +970,9 @@ function openDetail(id) {
   document.getElementById('d-lugar').textContent    = r.lugar;
   document.getElementById('d-score-num').textContent= parseFloat(r.score).toFixed(1);
   document.getElementById('d-ring-fill').setAttribute('stroke-dashoffset', off);
-  document.getElementById('d-date').textContent     = '📅 ' + fmtDate(r.fecha);
+  document.getElementById('d-date').innerHTML =
+    `📅 ${fmtDate(r.fecha)}` +
+    (r.precio ? `<span style="margin-left:12px;color:var(--gold-mid);font-weight:700;font-size:0.85rem;">${fmtPrecio(r.precio)} total</span>` : '');
 
   // pills
   document.getElementById('d-pills').innerHTML =
@@ -1004,6 +1041,7 @@ function openEditModal(r) {
   document.getElementById('score-val').textContent = parseFloat(r.score).toFixed(1);
   document.getElementById('score-note').textContent = '';
   document.getElementById('f-fecha').value    = r.fecha;
+  document.getElementById('f-precio').value   = r.precio != null ? r.precio : '';
   // set opinion
   const sel = document.getElementById('f-opinion');
   if (sel) { [...sel.options].forEach(o => { if(o.value===r.opinion) o.selected=true; }); }
@@ -1022,6 +1060,7 @@ async function saveEdit(id) {
   const nota   = document.getElementById('f-nota').value.trim();
   const fecha  = document.getElementById('f-fecha').value;
   const opinion= document.getElementById('f-opinion').value;
+  const precio = document.getElementById('f-precio').value ? parseFloat(document.getElementById('f-precio').value) : null;
 
   if (!lugar) { alert('Por favor ingresá el nombre del lugar.'); return; }
   if (!cat)   { alert('Por favor seleccioná una categoría.'); return; }
@@ -1035,7 +1074,7 @@ async function saveEdit(id) {
 
   try {
     const { error:e1 } = await db.from('resenas')
-      .update({ lugar, categoria:cat, opinion, score, nota, fecha })
+      .update({ lugar, categoria:cat, opinion, score, nota, fecha, precio })
       .eq('id', id);
     if (e1) throw e1;
 
