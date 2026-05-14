@@ -354,6 +354,88 @@
   .btn-save { flex:2; background:var(--gold); color:#0d1b2e; border:none; border-radius:12px; padding:12px; font-family:'Figtree',sans-serif; font-size:0.85rem; font-weight:700; cursor:pointer; transition:transform 0.15s,box-shadow 0.15s; box-shadow:0 2px 12px rgba(201,162,39,0.3); }
   .btn-save:hover { transform:translateY(-1px); box-shadow:0 4px 20px rgba(201,162,39,0.45); }
   .btn-save:disabled { opacity:0.5; cursor:not-allowed; transform:none; }
+
+  /* ── MOBILE ── */
+  @media (max-width: 600px) {
+    /* NAV */
+    nav { padding:0 12px; height:56px; }
+    .brand { font-size:0.95rem; }
+    .brand span { display:none; }
+    .accesos-btn { padding:6px 10px; font-size:0.68rem; }
+    .add-btn { padding:7px 12px; font-size:0.72rem; }
+
+    /* MAIN */
+    .main { padding:16px 12px 72px; }
+
+    /* HERO */
+    .hero-band { flex-direction:column; align-items:flex-start; gap:14px; padding:18px 16px; }
+    .hero-left h1 { font-size:1.25rem; }
+    .hero-left p  { font-size:0.74rem; max-width:100%; }
+    .hero-stats   { width:100%; justify-content:space-around; }
+    .hstat-val    { font-size:1.5rem; }
+    .hstat-lbl    { font-size:0.55rem; }
+
+    /* TABS */
+    .tabs { gap:6px; }
+    .tab  { padding:6px 14px; font-size:0.74rem; }
+
+    /* FILTER */
+    .filter-select { font-size:0.76rem; padding:8px 30px 8px 10px; min-width:120px; }
+
+    /* CARDS */
+    .card { padding:14px 12px; gap:10px; }
+    .icon-box { width:42px; height:42px; font-size:1.2rem; border-radius:12px; }
+    .card-name { font-size:0.86rem; }
+    .pill { font-size:0.6rem; padding:2px 7px; }
+    .card-prod-name  { font-size:0.68rem; max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .card-prod-score { font-size:0.75rem; padding-left:6px; }
+    .card-note { font-size:0.7rem; }
+    .card-date { font-size:0.6rem; }
+    .score-ring { width:48px; height:48px; }
+    .ring-label { font-size:0.88rem; }
+    .visits-tag { font-size:0.55rem; padding:2px 6px; }
+
+    /* DETAIL PANEL */
+    .detail-panel { border-radius:20px; }
+    .detail-header { padding:18px 16px 14px; gap:12px; }
+    .detail-icon { width:52px; height:52px; font-size:1.6rem; border-radius:14px; }
+    .detail-lugar { font-size:1.3rem; }
+    .detail-score-ring { width:60px; height:60px; }
+    .detail-score-num  { font-size:1rem; }
+    .detail-body { padding:14px 16px 18px; }
+    .detail-prod-name  { font-size:0.78rem; max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .detail-prod-score { font-size:0.88rem; }
+    .detail-nota { font-size:0.8rem; padding:10px 12px; }
+    .detail-footer { padding:12px 16px; gap:8px; }
+    .btn-detail-close,
+    .btn-detail-edit,
+    .btn-detail-delete { padding:10px 8px; font-size:0.78rem; }
+
+    /* MODAL */
+    .modal { padding:20px 16px; border-radius:20px; }
+    .modal-title { font-size:1.15rem; }
+    .modal-header { gap:6px !important; }
+    .form-label { font-size:0.68rem; }
+    .form-input, .form-textarea, .form-sel { font-size:0.82rem; padding:10px 12px; }
+    .score-big { font-size:2rem; }
+    .prod-row { padding:8px 10px; gap:8px; }
+    .prod-score-num { font-size:0.9rem; min-width:24px; }
+    .prod-slider { width:60px; }
+    .form-actions { gap:8px; margin-top:16px; }
+    .btn-cancel, .btn-save { padding:11px 8px; font-size:0.8rem; }
+
+    /* ACCESOS */
+    .acc-user-row { grid-template-columns:1fr auto; gap:8px; }
+    .acc-user-name { grid-column:1/-1; }
+    .acc-new-row { grid-template-columns:1fr 1fr auto; gap:6px; }
+
+    /* LOGIN */
+    .login-card { padding:28px 20px; }
+    .login-logo .l-title { font-size:1.4rem; }
+
+    /* PRICE FILTER */
+    #price-filter-row { gap:8px; }
+  }
 </style>
 </head>
 <body>
